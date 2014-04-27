@@ -1,5 +1,7 @@
+library triangle;
+
 import 'dart:html';
-import 'simpletriangle.dart';
+part 'simpletriangle.dart';
 
 void run() {
 	int width = 320;
@@ -27,8 +29,11 @@ void run() {
 void main() {
 	try {
 		run();
-	} catch (e, stackTrace) {
+	} on Exception catch (e) {
 		print("unhandled exception");
+		print(e);
+	} catch (e, stackTrace) {
+		print("unhandled error");
 		print(e);
 		print(stackTrace);
 	}
