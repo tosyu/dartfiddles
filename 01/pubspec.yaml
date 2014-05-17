@@ -3,4 +3,6 @@ version: 0.0.1
 description: Simple WebGL triangle in DART
 homepage: http://github.com/tosyu
 author: Krzysztof Antoszek <krzysztof@antoszek.net>
+dependencies:
+    vector_math: 1.4.3
 
