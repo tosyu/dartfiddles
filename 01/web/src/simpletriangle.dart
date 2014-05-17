@@ -26,24 +26,33 @@ class SimpleTriangle {
         String fragmentShaderSource = response.responseText;
         assert(fragmentShaderSource != null);
         loadShaders(vertexShaderSource, fragmentShaderSource);
+        HttpRequest.request(
+            "models/triangle.bin",
+            method: "GET",
+            responseType: "arraybuffer"
+          ).then((HttpRequest response) {
+          ByteBuffer buffer = response.response;
+          Float32List vdata = new Float32List.view(buffer);
+          loadModel(vdata);
+        });
       });
     });
   }
 
   void loadShaders(String vertexShaderSource, String fragmentShaderSource) {
-    print(vertexShaderSource);
-    print(fragmentShaderSource);
-    HttpRequest.request(
-        "models/triangle.bin",
-        method: "GET",
-        responseType: "arraybuffer"
-      ).then((HttpRequest response) {
-      print(response.response);
-      loadModel(new Blob(response.response));
-    });
+    ShaderProgram p = context.createProgram();
+    Shader sh = context.createVertexShader(gl.VERTEX_SHADER);
+    context.shaderSource(sh);
+    context.compileShader(sh);
+    p.attachShader(sh);
+    Shader sh = context.createVertexShader(gl.FRAGMENT_SHADER);
+    context.shaderSource(sh);
+    context.compileShader(sh);
+    p.attachShader(sh);
+    p.compileProgram();
   }
 
-  void loadModel(Blob vertexData) {
+  void loadModel(Float32List vertexData) {
     print(vertexData);
   }
 }
