@@ -12,12 +12,22 @@ class ContextNullError extends TriangleException {
 
 class SimpleTriangle {
   final CanvasRenderingContext context;
+  int aVertexPosition;
+  UnitformLocation mvMatrix;
+  UnitformLocation pMatrix;
 
   SimpleTriangle(CanvasRenderingContext this.context) {
     assert(context != null);
     if (context == null) {
       throw new ContextNullError("Context cannot be null!");
     }
+    initSystem();
+  }
+
+  void initSystem() {
+    context.clearColor(0.0, 0.0, 0.0, 1.0);
+    context.enable(context.DEPTH_TEST);
+
     // load shaders
     HttpRequest.request("shaders/vertex.shader").then((HttpRequest response) {
       String vertexShaderSource = response.responseText;
@@ -32,27 +42,32 @@ class SimpleTriangle {
             responseType: "arraybuffer"
           ).then((HttpRequest response) {
           ByteBuffer buffer = response.response;
-          Float32List vdata = new Float32List.view(buffer);
-          loadModel(vdata);
+          Int32List header = new Int32List.view(buffer, 0, 1);
+          int vertexLength = (header[0] / Float32List.BYTES_PER_ELEMENT).toInt(); // divide byte size to get length
+          Float32List vertexData = new Float32List.view(buffer, Int32List.BYTES_PER_ELEMENT, 9);
+          Float32List colorData = new Float32List.view(buffer, Int32List.BYTES_PER_ELEMENT + header[0], vertexLength);
+          loadModel(vertexData, colorData);
         });
       });
     });
   }
 
   void loadShaders(String vertexShaderSource, String fragmentShaderSource) {
-    ShaderProgram p = context.createProgram();
-    Shader sh = context.createVertexShader(gl.VERTEX_SHADER);
-    context.shaderSource(sh);
+    Program p = context.createProgram();
+    Shader sh = context.createShader(VERTEX_SHADER);
+    context.shaderSource(sh, vertexShaderSource);
     context.compileShader(sh);
-    p.attachShader(sh);
-    Shader sh = context.createVertexShader(gl.FRAGMENT_SHADER);
-    context.shaderSource(sh);
+    context.attachShader(p, sh);
+    sh = context.createShader(FRAGMENT_SHADER);
+    context.shaderSource(sh, fragmentShaderSource);
     context.compileShader(sh);
-    p.attachShader(sh);
-    p.compileProgram();
+    context.attachShader(p, sh);
+    context.linkProgram(p);
+    context.useProgram(p);
   }
 
-  void loadModel(Float32List vertexData) {
+  void loadModel(Float32List vertexData, Float32List colorData) {
     print(vertexData);
+    print(colorData);
   }
 }
