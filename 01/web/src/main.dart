@@ -1,9 +1,7 @@
-library triangle;
-
 import 'dart:html';
 import 'dart:typed_data';
 import 'dart:web_gl';
-part 'simpletriangle.dart';
+import 'simpletriangle.dart';
 
 void run() {
 	int width = 320;
