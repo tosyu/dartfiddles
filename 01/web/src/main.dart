@@ -14,7 +14,7 @@ void run() {
 
 	body.append(canvas);
 
-	CanvasRenderingContext context;
+	RenderingContext context;
 	assert(context == null);
 	
 	SimpleTriangle t;

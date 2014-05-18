@@ -16,7 +16,7 @@ class ContextNullError extends TriangleException {
 }
 
 class SimpleTriangle {
-  final CanvasRenderingContext context;
+  final RenderingContext context;
   
   Buffer triangleVertexBuffer;
   Buffer triangleColorBuffer;
@@ -33,10 +33,10 @@ class SimpleTriangle {
   Matrix4 pMatrix;
   int aVertexPosition;
   int aVertexColor;
-  UniformLocation umvMatrix;
-  UniformLocation upMatrix;
+  UniformLocation uMVMatrix;
+  UniformLocation uPMatrix;
 
-  SimpleTriangle(CanvasRenderingContext this.context) {
+  SimpleTriangle(RenderingContext this.context) {
     assert(context != null);
     if (context == null) {
       throw new ContextNullError("Context cannot be null!");
@@ -51,6 +51,7 @@ class SimpleTriangle {
 
     viewportWidth = context.canvas.width;
     viewportHeight = context.canvas.height;
+    pMatrix = makePerspectiveMatrix(45 * (PI / 180), viewportWidth / viewportHeight, 0.1, 100.0);
 
     // load shaders
     HttpRequest.request("shaders/vertex.shader").then((HttpRequest response) {
@@ -82,45 +83,65 @@ class SimpleTriangle {
   }
 
   void loadShaders(String vertexShaderSource, String fragmentShaderSource) {
+    Shader vs = context.createShader(VERTEX_SHADER);
+    context.shaderSource(vs, vertexShaderSource);
+    context.compileShader(vs);
+    
+    Shader fs = context.createShader(FRAGMENT_SHADER);
+    context.shaderSource(fs, fragmentShaderSource);
+    context.compileShader(fs);
+    
     shaderProgram = context.createProgram();
-    Shader sh = context.createShader(VERTEX_SHADER);
-    context.shaderSource(sh, vertexShaderSource);
-    context.compileShader(sh);
-    context.attachShader(shaderProgram, sh);
-    sh = context.createShader(FRAGMENT_SHADER);
-    context.shaderSource(sh, fragmentShaderSource);
-    context.compileShader(sh);
-    context.attachShader(shaderProgram, sh);
+    context.attachShader(shaderProgram, vs);
+    context.attachShader(shaderProgram, fs);
     context.linkProgram(shaderProgram);
     context.useProgram(shaderProgram);
     
+    if (!context.getShaderParameter(vs, RenderingContext.COMPILE_STATUS)) {
+      print(context.getShaderInfoLog(vs));
+    }
+
+    if (!context.getShaderParameter(fs, RenderingContext.COMPILE_STATUS)) {
+      print(context.getShaderInfoLog(fs));
+    }
+
+    if (!context.getProgramParameter(shaderProgram, RenderingContext.LINK_STATUS)) {
+      print(context.getProgramInfoLog(shaderProgram));
+    }
+
     aVertexPosition = context.getAttribLocation(shaderProgram, "aVertexPosition");
     context.enableVertexAttribArray(aVertexPosition);
 
     aVertexColor = context.getAttribLocation(shaderProgram, "aVertexColor");
     context.enableVertexAttribArray(aVertexColor);
     
-    upMatrix = context.getUniformLocation(shaderProgram, "pMatrix");
-    umvMatrix = context.getUniformLocation(shaderProgram, "mvMatrix");
+    uPMatrix = context.getUniformLocation(shaderProgram, "uPMatrix");
+    uMVMatrix = context.getUniformLocation(shaderProgram, "uMVMatrix");
   }
 
   void loadModel() {
+    print(vertexData);
     triangleVertexBuffer = context.createBuffer();
-    context.bindBuffer(ARRAY_BUFFER, triangleVertexBuffer);
-    context.bufferDataTyped(ARRAY_BUFFER, vertexData, STATIC_DRAW);
+    context.bindBuffer(RenderingContext.ARRAY_BUFFER, triangleVertexBuffer);
+    context.bufferDataTyped(RenderingContext.ARRAY_BUFFER, vertexData, STATIC_DRAW);
 
+    print(colorData);
     triangleColorBuffer = context.createBuffer();
-    context.bindBuffer(ARRAY_BUFFER, triangleColorBuffer);
-    context.bufferDataTyped(ARRAY_BUFFER, colorData, STATIC_DRAW);
+    context.bindBuffer(RenderingContext.ARRAY_BUFFER, triangleColorBuffer);
+    context.bufferDataTyped(RenderingContext.ARRAY_BUFFER, colorData, STATIC_DRAW);
+  }
+
+  double degToRad(double degrees) {
+    return degrees * (PI / 180);
   }
 
   void draw(double timestamp) {
+    context.viewport(0, 0, viewportWidth, viewportHeight);
     context.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
-    pMatrix = makePerspectiveMatrix((45 * (PI / 180)), viewportWidth / viewportHeight, 0.1, 100.0);
     mvMatrix = new Matrix4.identity();
 
-    mvMatrix.translate(-1.5, 0.0, -7.0);
+    mvMatrix.translate(0.0, 0.0, -7.0);
     context.bindBuffer(ARRAY_BUFFER, triangleVertexBuffer); 
     context.vertexAttribPointer(aVertexPosition, 3, FLOAT, false, 0, 0);
 
@@ -129,9 +150,9 @@ class SimpleTriangle {
 
     Float32List tmp = new Float32List(16);
     pMatrix.copyIntoArray(tmp);
-    context.uniformMatrix4fv(upMatrix, false, tmp);
+    context.uniformMatrix4fv(uPMatrix, false, tmp);
     mvMatrix.copyIntoArray(tmp);
-    context.uniformMatrix4fv(umvMatrix, false, tmp);
+    context.uniformMatrix4fv(uMVMatrix, false, tmp);
     
     context.drawArrays(TRIANGLES, 0, (vertexData.length / 3).toInt());
 
